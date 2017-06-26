@@ -15,7 +15,7 @@ from data import Data
 if __name__ == '__main__':
     with pidfile.PidFile(Config.PREFIX + 'pid'):
         # init
-        logging.basicConfig(format=Config.LOG_FORMAT, level=Config.LOG_LEVEL)
+        # logging.basicConfig(format=Config.LOG_FORMAT, level=Config.LOG_LEVEL)
         fmt = logging.Formatter(Config.LOG_FORMAT, datefmt='%Y-%m-%d')
 
         logger = logging.getLogger('ux_repost_bot_legacy')
@@ -25,6 +25,7 @@ if __name__ == '__main__':
         handler.setLevel(Config.LOG_LEVEL)
         handler.setFormatter(fmt)
 
+        logger.propagate = False
         logger.addHandler(handler)
 
         app = API(Config.BOT_ID, Config.SECRET_TOKEN, logger)
