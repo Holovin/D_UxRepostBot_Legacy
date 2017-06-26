@@ -44,7 +44,7 @@ if __name__ == '__main__':
 
         current_post_int_id = int(current_post_str_id)
 
-        # app.api_send_message(Config.ID_TO, '[INFO] UxRepostBot_legacy_v1.1 is up...')
+        app.api_send_message(Config.ID_TO, '[INFO] UxRepostBot_legacy_v1.1 is up...')
 
         # main
         while True:
