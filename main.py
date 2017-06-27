@@ -63,7 +63,7 @@ if __name__ == '__main__':
 
         # log
         if Config.LOG_TO:
-            app.api_send_message(Config.LOG_TO, '[INFO] UxRepostBot legacy v1.1 is up...')
+            app.api_send_message(Config.LOG_TO, '[INFO] UxRepostBot legacy v1.2 is up...')
 
         # main
         while True:
@@ -88,12 +88,13 @@ if __name__ == '__main__':
                         current_day_users = new_users
 
                     else:
-                        total_users_current += new_users
+                        current_day_users += new_users
 
                     with open(Config.WORDS_FILE) as f:
                         random_text = random_line(f)
 
-                    if (new_users > Config.USER_MIN_NEW or current_stash_users > Config.USER_MIN_DELTA) and total_users_current > 0:
+                    if (new_users > Config.USER_MIN_NEW or current_stash_users > Config.USER_MIN_DELTA) \
+                            and total_users_current > 0:
                         current_stash_users = 0
 
                         app.api_send_message(
