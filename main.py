@@ -85,7 +85,7 @@ if __name__ == '__main__':
 
                     # reset day counter
                     if current_day != last_time.day:
-                        current_day_users = new_users
+                        current_day_users = 0
 
                     else:
                         current_day_users += new_users
@@ -95,11 +95,9 @@ if __name__ == '__main__':
 
                     if (new_users >= Config.USER_MIN_NEW or current_stash_users >= Config.USER_MIN_DELTA) \
                             and total_users_current > 0:
-                        current_stash_users = 0
-
                         app.api_send_message(
                             Config.ID_TO, '*UxLive stats* ({:%Y/%m/%d %H:%M:%S})\n'
-                                          'Подписчиков: {:d} \[изм: {:d}]\n'
+                                          'Подписчиков: {:d} \[d: {:d}]\n'
                                           'Новых за {:d} минут: {:+d}\n'
                                           'Новых за день: {:+d}\n'
                                           '\n'
@@ -112,6 +110,8 @@ if __name__ == '__main__':
                             'markdown')
 
                     logging.info('Users total: {}, changes {:+d}'.format(total_users_fresh, new_users))
+
+                    current_stash_users = 0
                     total_users_current = total_users_fresh
 
                 else:
