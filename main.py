@@ -93,7 +93,7 @@ if __name__ == '__main__':
                     with open(Config.WORDS_FILE) as f:
                         random_text = random_line(f)
 
-                    if (new_users > Config.USER_MIN_NEW or current_stash_users > Config.USER_MIN_DELTA) \
+                    if (new_users >= Config.USER_MIN_NEW or current_stash_users >= Config.USER_MIN_DELTA) \
                             and total_users_current > 0:
                         current_stash_users = 0
 
