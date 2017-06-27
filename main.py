@@ -56,7 +56,7 @@ if __name__ == '__main__':
 
         # pre-check
         if not current_post_str_id.isdigit():
-            logger.fatal('Wrong input data: %s.' % current_post_str_id)
+            logger.fatal('Wrong input data: {}.'.format(current_post_str_id))
             exit(1)
 
         current_post_int_id = int(current_post_str_id)
@@ -67,7 +67,7 @@ if __name__ == '__main__':
 
         # main
         while True:
-            logger.info('Read from: %d' % current_post_int_id)
+            logger.info('Read from: {:d}'.format(current_post_int_id))
             resp = app.api_forward_message(Config.ID_TO, Config.CHAN_FROM, 'False', str(current_post_int_id))
 
             if datetime.now(timezone(Config.TIMEZONE)) - last_time > timedelta(minutes=Config.USER_COUNT_CHECK_TIMER):
@@ -138,7 +138,7 @@ if __name__ == '__main__':
                         freeze_count = 0
 
                         for post_id in range(current_post_int_id + 1, current_post_int_id + 5):
-                            logger.info('Unfreeze: {}' % post_id)
+                            logger.info('Unfreeze: {}'.format(post_id))
                             resp = app.api_forward_message(Config.ID_TO, Config.CHAN_FROM, 'False', str(post_id))
                             time.sleep(3)
 
