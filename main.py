@@ -30,7 +30,7 @@ if __name__ == '__main__':
     with pidfile.PidFile(Config.PREFIX + 'pid'):
         # init
         logging.basicConfig(format=Config.LOG_FORMAT, level=Config.LOG_LEVEL)
-        fmt = logging.Formatter(Config.LOG_FORMAT, datefmt='%Y-%m-%d')
+        fmt = logging.Formatter(Config.LOG_FORMAT, datefmt=':%Y/%m/%d %H:%M:%S')
 
         logger = logging.getLogger('ux_repost_bot_legacy')
 
@@ -61,6 +61,10 @@ if __name__ == '__main__':
 
         current_post_int_id = int(current_post_str_id)
 
+        # init
+        total_users_current = app.api_get_chat_members_count(Config.CHAN_FROM).get('result')
+        total_users_fresh = total_users_current
+
         # log
         if Config.LOG_TO:
             app.api_send_message(Config.LOG_TO, '[INFO] UxRepostBot legacy v1.2 is up...')
@@ -73,8 +77,9 @@ if __name__ == '__main__':
             if datetime.now(timezone(Config.TIMEZONE)) - last_time > timedelta(minutes=Config.USER_COUNT_CHECK_TIMER):
                 current_day = last_time.day
                 last_time = datetime.now(timezone(Config.TIMEZONE))
-
                 resp_users = app.api_get_chat_members_count(Config.CHAN_FROM)
+
+                logger.info('Get user count: {}, last time: {}, currentDay: {}'.format(resp_users, last_time, current_day))
 
                 if resp_users:
                     total_users_fresh = resp_users.get('result')
@@ -89,6 +94,9 @@ if __name__ == '__main__':
 
                     else:
                         current_day_users += new_users
+
+                    logger.info('New users {}, delta {}, today {}'.format(new_users, current_stash_users,
+                                                                          current_day_users))
 
                     with open(Config.WORDS_FILE) as f:
                         random_text = random_line(f)
@@ -109,10 +117,10 @@ if __name__ == '__main__':
                                         random_text),
                             'markdown')
 
-                    logging.info('Users total: {}, changes {:+d}'.format(total_users_fresh, new_users))
+                        logging.info('Users total: {}, changes {:+d}'.format(total_users_fresh, new_users))
 
-                    current_stash_users = 0
-                    total_users_current = total_users_fresh
+                        current_stash_users = 0
+                        total_users_current = total_users_fresh
 
                 else:
                     logging.warning('Cant count users delta (err: empty response) ')
@@ -129,7 +137,7 @@ if __name__ == '__main__':
 
                 # no post
                 else:
-                    logger.info('No new posts: %d'.format(current_post_int_id))
+                    logger.info('No new posts: {:d}'.format(current_post_int_id))
                     time.sleep(current_sleep_sec)
 
                     freeze_count += 1
