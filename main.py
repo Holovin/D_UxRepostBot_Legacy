@@ -1,6 +1,8 @@
 #!/usr/bin/python3
 
 import logging
+import random
+
 import pidfile
 import time
 
@@ -12,10 +14,22 @@ from config import Config
 from api import API
 from data import Data
 
+
+def random_line(file):
+    line = next(file)
+
+    for num, aline in enumerate(file):
+        if random.randrange(num + 2):
+            continue
+
+        line = aline
+
+    return line
+
 if __name__ == '__main__':
     with pidfile.PidFile(Config.PREFIX + 'pid'):
         # init
-        # logging.basicConfig(format=Config.LOG_FORMAT, level=Config.LOG_LEVEL)
+        logging.basicConfig(format=Config.LOG_FORMAT, level=Config.LOG_LEVEL)
         fmt = logging.Formatter(Config.LOG_FORMAT, datefmt='%Y-%m-%d')
 
         logger = logging.getLogger('ux_repost_bot_legacy')
@@ -35,8 +49,10 @@ if __name__ == '__main__':
         current_sleep_sec = 1
         freeze_count = 0
 
-        last_time = datetime.now(timezone('Europe/Minsk')) - timedelta(minutes=Config.BEEP_TIME)
-        current_total_users = 0
+        last_time = datetime.now(timezone(Config.TIMEZONE)) - timedelta(minutes=Config.USER_COUNT_CHECK_TIMER)
+        total_users_current = 0
+        current_stash_users = 0
+        current_day_users = 0
 
         # pre-check
         if not current_post_str_id.isdigit():
@@ -45,26 +61,57 @@ if __name__ == '__main__':
 
         current_post_int_id = int(current_post_str_id)
 
-        app.api_send_message(Config.ID_TO, '[INFO] UxRepostBot_legacy_v1.1 is up...')
+        # log
+        if Config.LOG_TO:
+            app.api_send_message(Config.LOG_TO, '[INFO] UxRepostBot legacy v1.1 is up...')
 
         # main
         while True:
             logger.info('Read from: %d' % current_post_int_id)
             resp = app.api_forward_message(Config.ID_TO, Config.CHAN_FROM, 'False', str(current_post_int_id))
 
-            if datetime.now(timezone('Europe/Minsk')) - last_time > timedelta(minutes=Config.BEEP_TIME):
-                last_time = datetime.now(timezone('Europe/Minsk'))
+            if datetime.now(timezone(Config.TIMEZONE)) - last_time > timedelta(minutes=Config.USER_COUNT_CHECK_TIMER):
+                current_day = last_time.day
+                last_time = datetime.now(timezone(Config.TIMEZONE))
+
                 resp_users = app.api_get_chat_members_count(Config.CHAN_FROM)
 
                 if resp_users:
-                    new_total_users = resp_users.get('result')
-                    delta = new_total_users - current_total_users
+                    total_users_fresh = resp_users.get('result')
 
-                    if delta != 0:
-                        app.api_send_message(Config.ID_TO, 'UX Live подписок %d, изменения %+d.' % (new_total_users, delta))
+                    # update delta
+                    new_users = total_users_fresh - total_users_current
+                    current_stash_users += abs(new_users)
 
-                    logging.info('Users total: %d, changes %+d' % (new_total_users, delta))
-                    current_total_users = new_total_users
+                    # reset day counter
+                    if current_day != last_time.day:
+                        current_day_users = new_users
+
+                    else:
+                        total_users_current += new_users
+
+                    with open(Config.WORDS_FILE) as f:
+                        random_text = random_line(f)
+
+                    if (new_users > Config.USER_MIN_NEW or current_stash_users > Config.USER_MIN_DELTA) and total_users_current > 0:
+                        current_stash_users = 0
+
+                        app.api_send_message(
+                            Config.ID_TO, '*UxLive stats* ({:%Y/%m/%d %H:%M:%S})\n'
+                                          'Подписчиков: {:d} \[изм: {:d}]\n'
+                                          'Новых за {:d} минут: {:+d}\n'
+                                          'Новых за день: {:+d}\n'
+                                          '\n'
+                                          '{:s}'
+                                .format(last_time,
+                                        total_users_fresh, current_stash_users,
+                                        Config.USER_COUNT_CHECK_TIMER, new_users,
+                                        current_day_users,
+                                        random_text),
+                            'markdown')
+
+                    logging.info('Users total: {}, changes {:+d}'.format(total_users_fresh, new_users))
+                    total_users_current = total_users_fresh
 
                 else:
                     logging.warning('Cant count users delta (err: empty response) ')
@@ -73,7 +120,7 @@ if __name__ == '__main__':
             if resp:
                 # send
                 if API.api_check_success(resp):
-                    logger.info('Post send ok: %d' % current_post_int_id)
+                    logger.info('Post send ok: %d'.format(current_post_int_id))
                     current_post_int_id += 1
                     data.set(str(current_post_int_id))
                     time.sleep(1)
@@ -81,7 +128,7 @@ if __name__ == '__main__':
 
                 # no post
                 else:
-                    logger.info('No new posts: %d' % current_post_int_id)
+                    logger.info('No new posts: %d'.format(current_post_int_id))
                     time.sleep(current_sleep_sec)
 
                     freeze_count += 1
@@ -91,7 +138,7 @@ if __name__ == '__main__':
                         freeze_count = 0
 
                         for post_id in range(current_post_int_id + 1, current_post_int_id + 5):
-                            logger.info('Unfreeze: %d' % post_id)
+                            logger.info('Unfreeze: {}' % post_id)
                             resp = app.api_forward_message(Config.ID_TO, Config.CHAN_FROM, 'False', str(post_id))
                             time.sleep(3)
 
@@ -107,3 +154,4 @@ if __name__ == '__main__':
             else:
                 logger.info('Possible error...')
                 time.sleep(600)
+
