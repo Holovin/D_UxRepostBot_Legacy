@@ -29,7 +29,7 @@ def random_line(file):
 if __name__ == '__main__':
     with pidfile.PidFile(Config.PREFIX + 'pid'):
         # init
-        logging.basicConfig(format=Config.LOG_FORMAT, level=Config.LOG_LEVEL)
+        # logging.basicConfig(format=Config.LOG_FORMAT, level=Config.LOG_LEVEL)
         fmt = logging.Formatter(Config.LOG_FORMAT, datefmt=':%Y/%m/%d %H:%M:%S')
 
         logger = logging.getLogger('ux_repost_bot_legacy')
@@ -89,11 +89,11 @@ if __name__ == '__main__':
                     current_stash_users += abs(new_users)
 
                     # reset day counter
-                    if current_day != last_time.day:
-                        current_day_users = 0
+                    if current_day == last_time.day:
+                        current_day_users += new_users
 
                     else:
-                        current_day_users += new_users
+                        current_day_users = 0
 
                     logger.info('New users {}, delta {}, today {}'.format(new_users, current_stash_users,
                                                                           current_day_users))
@@ -105,9 +105,9 @@ if __name__ == '__main__':
                             and total_users_current > 0:
                         app.api_send_message(
                             Config.ID_TO, '*UxLive stats* ({:%Y/%m/%d %H:%M:%S})\n'
-                                          'Подписчиков: {:d} \[d: {:d}]\n'
-                                          'Новых за {:d} минут: {:+d}\n'
-                                          'Новых за день: {:+d}\n'
+                                          'Подписчиков: {:d}\n'
+                                          'За последние {:d} минут: {:+d}\n'
+                                          'За день: {:+d}\n'
                                           '\n'
                                           '{:s}'
                                 .format(last_time,
@@ -120,7 +120,9 @@ if __name__ == '__main__':
                         logging.info('Users total: {}, changes {:+d}'.format(total_users_fresh, new_users))
 
                         current_stash_users = 0
-                        total_users_current = total_users_fresh
+
+                    # update after send or skip
+                    total_users_current = total_users_fresh
 
                 else:
                     logging.warning('Cant count users delta (err: empty response) ')
