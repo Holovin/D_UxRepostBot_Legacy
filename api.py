@@ -28,7 +28,7 @@ class API:
         else:
             return None
 
-    def api_send_message(self, chat_id, text):
+    def api_send_message(self, chat_id, text, parse_mode=None):
         url = self._build_url('sendMessage')
 
         params = {
@@ -36,6 +36,9 @@ class API:
             'text': text,
             'disable_web_page_preview': 'True'
         }
+
+        if parse_mode:
+            params['parse_mode'] = parse_mode
 
         if self.network.do_post(url, params):
             return self.network.get_data_json()
