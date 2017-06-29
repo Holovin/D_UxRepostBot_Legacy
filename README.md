@@ -9,14 +9,31 @@ New version (with requirement admin channel rights) will be released soon.
 1. Run python3 main.py (or write .sh script for your needs)
 
 # Config
+## System vars
 - `PREFIX` - working directory for pid file
 - `LOG_FORMAT` - default python logger format string
 - `LOG_LEVEL` - min level to log
-- `BEEP_TIME` - time for check user count in main channel (in mins)
+- `TIMEZONE` - timezone for logfile and check timers
+
+## Telegram vars
 - `CHAN_FROM` - telegram channel id (from)
 - `ID_TO` - telegram chat id or user id (to, you must add bot to chat or write first to him (if single contact))
+- `LOG_TO` - telegram user id to send init message (and another important logs in future)
+
+## Check time vars
+- `BEEP_TIME` - time for check user count in main channel (in mins)
+- `USER_COUNT_CHECK_TIMER` - minutes between check user counters
+- `USER_MIN_NEW` - minimal new users to display (for `USER_COUNT_CHECK_TIMER` minutes)
+- `USER_MIN_DELTA` - minimal users delta changes to display (for `USER_COUNT_CHECK_TIMER` minutes)
+
+# Bot data
+- `WORDS_FILE` = path to file with text which append to count messages
+
+# Telegram bots
 - `BOT_ID` - telegram bot id (numbers before semicolon in 123456:abce123fgbji...)
 - `SECRET_TOKEN` - telegram bot token (text after semicolon 123456:abce123fgbji...)
+
+# Other
 - `HEADERS` - headers for HTTPS requests
 
 # Requirements
@@ -25,6 +42,9 @@ On windows you can just remove it or use through Windows Subsystem for Linux (WS
 
 
 # Changelog
+## v1.2 - 29.06.2017
+Fix user counter, timezone support and logger update.
+
 ## v1.1 - 26.06.2017
 Public release, update logger, update config, add feature to watch for user counter in channel. 
 
