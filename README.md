@@ -42,6 +42,9 @@ On windows you can just remove it or use through Windows Subsystem for Linux (WS
 
 
 # Changelog
+## v1.2a - 02.07.2017
+Day results, force state param, send copy of mesgs and format error fixes.
+
 ## v1.2 - 29.06.2017
 Fix user counter, timezone support and logger update.
 
