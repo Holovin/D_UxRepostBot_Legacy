@@ -26,6 +26,7 @@ def random_line(file):
 
     return line
 
+
 if __name__ == '__main__':
     with pidfile.PidFile(Config.PREFIX + 'pid'):
         # init
@@ -53,6 +54,7 @@ if __name__ == '__main__':
         total_users_current = 0
         current_stash_users = 0
         current_day_users = 0
+        force_state = False
 
         # pre-check
         if not current_post_str_id.isdigit():
@@ -79,7 +81,8 @@ if __name__ == '__main__':
                 last_time = datetime.now(timezone(Config.TIMEZONE))
                 resp_users = app.api_get_chat_members_count(Config.CHAN_FROM)
 
-                logger.info('Get user count: {}, last time: {}, currentDay: {}'.format(resp_users, last_time, current_day))
+                logger.info(
+                    'Get user count: {}, last time: {}, currentDay: {}'.format(resp_users, last_time, current_day))
 
                 if resp_users:
                     total_users_fresh = resp_users.get('result')
@@ -93,7 +96,7 @@ if __name__ == '__main__':
                         current_day_users += new_users
 
                     else:
-                        current_day_users = 0
+                        force_state = True
 
                     logger.info('New users {}, delta {}, today {}'.format(new_users, current_stash_users,
                                                                           current_day_users))
@@ -101,17 +104,29 @@ if __name__ == '__main__':
                     with open(Config.WORDS_FILE) as f:
                         random_text = random_line(f)
 
+                    app.api_send_message(
+                        Config.LOG_TO, '*UxLive stats* ({:%Y/%m/%d %H:%M:%S})\n'
+                                       'Подписчиков: {:d}\n'
+                                       'За последние {:d} минут: {:+d}\n'
+                                       'За день: {:+d}\n'
+                                       '\n'
+                                       '{}'
+                            .format(last_time,
+                                    total_users_fresh,
+                                    Config.USER_COUNT_CHECK_TIMER, new_users,
+                                    current_day_users,
+                                    random_text),
+                        'markdown')
+
                     if (new_users >= Config.USER_MIN_NEW or current_stash_users >= Config.USER_MIN_DELTA) \
-                            and total_users_current > 0:
+                            and total_users_current > 0 or force_state:
                         app.api_send_message(
                             Config.ID_TO, '*UxLive stats* ({:%Y/%m/%d %H:%M:%S})\n'
                                           'Подписчиков: {:d}\n'
                                           'За последние {:d} минут: {:+d}\n'
-                                          'За день: {:+d}\n'
-                                          '\n'
-                                          '{:s}'
+                                          'За день: {:+d}\n\n{}'
                                 .format(last_time,
-                                        total_users_fresh, current_stash_users,
+                                        total_users_fresh,
                                         Config.USER_COUNT_CHECK_TIMER, new_users,
                                         current_day_users,
                                         random_text),
@@ -120,9 +135,14 @@ if __name__ == '__main__':
                         logging.info('Users total: {}, changes {:+d}'.format(total_users_fresh, new_users))
 
                         current_stash_users = 0
+                        force_state = False
 
                     # update after send or skip
                     total_users_current = total_users_fresh
+
+                    # reset
+                    if current_day != last_time.day:
+                        current_day_users = 0
 
                 else:
                     logging.warning('Cant count users delta (err: empty response) ')
@@ -165,4 +185,3 @@ if __name__ == '__main__':
             else:
                 logger.info('Possible error...')
                 time.sleep(600)
-
