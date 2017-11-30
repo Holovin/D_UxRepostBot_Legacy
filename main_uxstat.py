@@ -128,7 +128,7 @@ if __name__ == '__main__':
                 channel.update({'stat_delta_users': channel.get('stat_delta_users') + abs(new_users)})
 
                 # update day counter
-                if channel.get('stat_last_check_time').day != last_check_datetime.day:
+                if channel.get('stat_last_check_time').day == last_check_datetime.day:
                     channel.update({'stat_day_users': channel.get('stat_day_users') + new_users})
 
                 ### send checks ###
@@ -139,7 +139,7 @@ if __name__ == '__main__':
                         and new_users_fresh % channel.get('trigger_every_odd') == 0:
                     send_reason = '#get {}!'.format(new_users_fresh)
 
-                elif channel.get('stat_last_check_time').day == last_check_datetime.day:
+                elif channel.get('stat_last_check_time').day != last_check_datetime.day:
                     send_reason = 'новый день'
 
                 elif new_users >= channel.get('trigger_min_sub'):
