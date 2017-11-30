@@ -128,7 +128,7 @@ if __name__ == '__main__':
                 channel.update({'stat_delta_users': channel.get('stat_delta_users') + abs(new_users)})
 
                 # update day counter
-                if channel.get('stat_last_check_time').day == last_check_datetime.day:
+                if channel.get('stat_last_check_time').day != last_check_datetime.day:
                     channel.update({'stat_day_users': channel.get('stat_day_users') + new_users})
 
                 ### send checks ###
