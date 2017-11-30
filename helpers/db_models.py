@@ -15,7 +15,7 @@ class Settings(BaseModel):
     id = PrimaryKeyField(primary_key=True)
 
     # channel for check stat
-    channel_name = CharField(unique=True, null=False)
+    channel_name = CharField(null=False)
 
     # stat will send here
     print_to = CharField(null=False)
