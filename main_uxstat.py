@@ -139,34 +139,34 @@ if __name__ == '__main__':
                         and new_users_fresh % channel.get('trigger_every_odd') == 0:
                     send_reason = '#get {}!'.format(new_users_fresh)
 
-                elif channel.get('stat_last_check_time').day != last_check_datetime.day:
+                elif channel.get('stat_last_check_time').day == last_check_datetime.day:
                     send_reason = 'новый день'
 
                 elif new_users >= channel.get('trigger_min_sub'):
-                    send_reason = 'новые подписчики'
+                    send_reason = 'подписки'
 
                 elif new_users <= channel.get('trigger_min_ubsub'):
-                    send_reason = 'канал скатился'
+                    send_reason = 'отписки'
 
                 elif channel.get('stat_delta_users') >= channel.get('trigger_min_flow'):
-                    send_reason = 'большой поток'
+                    send_reason = 'поток'
 
                 # send & reset stash
                 if send_reason != '':
                     app.api_send_message(channel.get('print_to'),
-                                         '*{} stats* ({:%Y/%m/%d %H:%M:%S})\n'
+                                         '*Stats: * [{}](https://t.me/{}) ({:%Y/%m/%d %H:%M:%S})\n'
                                          'Подписчиков: {:d}\n'
                                          'За {}: {:+d}\n'
-                                         'Поток: {:+d}\n'
                                          'За день: {:+d}\n'
+                                         'Поток: {:+d} [(?)](http://telegra.ph/Ux-Stats-11-30)\n'
                                          'Триггер: {}\n'
                                          '#uxstat'
-                                         .format(channel.get('name')[1:], last_check_datetime,
+                                         .format(channel.get('name'), channel.get('name')[1:], last_check_datetime,
                                                  new_users_fresh,
                                                  get_amazing_date(datetime.now(timezone(Config.TIMEZONE)) - channel.get('write_last_time')),
                                                  new_users,
-                                                 channel.get('stat_delta_users'),
                                                  channel.get('stat_day_users'),
+                                                 channel.get('stat_delta_users'),
                                                  send_reason
                                                  ),
                                          'markdown')
