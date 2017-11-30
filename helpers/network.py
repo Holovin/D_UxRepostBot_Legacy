@@ -24,12 +24,13 @@ class Network:
             if self.last_answer.url.lower() != url.lower():
                 self.logger.warning("Redirect to: " + self.last_answer.url)
 
+
         except requests.exceptions.RequestException as e:
             self.logger.warning("Fatal error [get url]: " + str(e))
             return False
 
         self.logger.debug("Getting url... ok")
-        return True
+        return self.check_no_errors()
 
     def do_post(self, url, data):
         self.logger.debug("Post url: " + url)
@@ -43,4 +44,11 @@ class Network:
             return False
 
         self.logger.debug("Posting url... ok")
+        return self.check_no_errors()
+
+    def check_no_errors(self):
+        if self.last_answer.status_code > 400:
+            return False
+
         return True
+
