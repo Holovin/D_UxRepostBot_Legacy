@@ -64,7 +64,7 @@ if __name__ == '__main__':
 
     fmt = logging.Formatter(Config.LOG_FORMAT, datefmt=':%Y/%m/%d %H:%M:%S')
     logger = logging.getLogger('ux_repost_bot_legacy')
-    handler = RotatingFileHandler(filename=Config.PREFIX + 'log.txt', maxBytes=10000000, backupCount=5)
+    handler = RotatingFileHandler(filename='log.txt', maxBytes=10000000, backupCount=5)
     handler.setFormatter(Config.LOG_FORMAT)
     handler.setLevel(Config.LOG_LEVEL)
     handler.setFormatter(fmt)
