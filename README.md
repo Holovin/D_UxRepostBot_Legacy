@@ -1,7 +1,7 @@
 # UxRepostBot [Legacy]
 Legacy version of UxRepostBot - channel stats counter & announcer.
 
-Since new api update(october 2017) CAN NOT repost messages from telegram channel to chat/contact WITHOUT channel admin rights (works with some bad practice, but stable). New version (with requirement admin channel rights) will be released soon.
+Since new api update (october 2017) CAN NOT repost messages from telegram channel to chat/contact WITHOUT channel admin rights (works with some bad practice, but stable). New version (with requirement admin channel rights) will be released soon.
 
 ## Installation
 1. Clone repo
@@ -26,7 +26,7 @@ For database config see table structure in `db_models.py` file.
 ## Changelog
 ### v1.3 - 30.11.2017
 Remove repost module, because telegram api now restrict 'shadow' reposts.
-Fully rework stats module: multichannel support, save state to sqlite3 database, have much improvements. 
+Fully rework stats module: multichannel support, save state to sqlite3 database, have many improvements. 
 
 ### v1.2a - 02.07.2017
 Day results, force state param, send copy of mesgs and format error fixes.
