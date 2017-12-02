@@ -81,6 +81,7 @@ if __name__ == '__main__':
     channels = []
     for channel in Settings.select():
         channels.append({
+            'id': channel.id,
             'name': channel.channel_name,
             'print_to': channel.print_to,
             'admin_to': channel.admin_to,
@@ -103,8 +104,8 @@ if __name__ == '__main__':
     last_check_datetime = datetime.now(timezone(Config.TIMEZONE))
 
     while True:
-        for channel in channels:
-            if datetime.now(timezone(Config.TIMEZONE)) - channel.get('write_last_time') >= timedelta(minutes=channel.get('write_ban_minutes')):
+        try:
+            for channel in channels:
                 try:
                     result = app.api_get_chat_members_count(channel.get('name'))
                     last_check_datetime = datetime.now(timezone(Config.TIMEZONE))
@@ -116,8 +117,8 @@ if __name__ == '__main__':
                         raise Exception('Empty result')
 
                 except Exception as e:
-                    logging.warning(err)
-                    app.api_send_message(channel.get('admin_to'), err)
+                    logging.warning('{}\n{}'.format(e, err))
+                    app.api_send_message(channel.get('admin_to'), '{}\n{}'.format(e, err))
                     continue
 
                 # new_users = total_users_fresh - total_users_current
@@ -133,11 +134,17 @@ if __name__ == '__main__':
 
                 ### send checks ###
                 send_reason = ''
+                send_force = False
+
+                # uncomment for test purpose
+                # send_force = True
+                # send_reason = 'Test'
 
                 if new_users_fresh != channel.get('stat_max_users') \
                         and new_users_fresh != channel.get('stat_total_users') \
                         and new_users_fresh % channel.get('trigger_every_odd') == 0:
                     send_reason = '#get {}!'.format(new_users_fresh)
+                    send_force = True
 
                 elif channel.get('stat_last_check_time').day != last_check_datetime.day:
                     send_reason = 'новый день'
@@ -152,24 +159,26 @@ if __name__ == '__main__':
                     send_reason = 'поток'
 
                 # send & reset stash
-                if send_reason != '':
-                    app.api_send_message(channel.get('print_to'),
-                                         '*Stats: * [{}](https://t.me/{}) ({:%Y/%m/%d %H:%M:%S})\n'
-                                         'Подписчиков: {:d}\n'
-                                         'За {}: {:+d}\n'
-                                         'За день: {:+d}\n'
-                                         'Поток: {:+d} [(?)](http://telegra.ph/Ux-Stats-11-30)\n'
-                                         'Триггер: {}\n'
-                                         '#uxstat'
-                                         .format(channel.get('name'), channel.get('name')[1:], last_check_datetime,
-                                                 new_users_fresh,
-                                                 get_amazing_date(datetime.now(timezone(Config.TIMEZONE)) - channel.get('write_last_time')),
-                                                 new_users,
-                                                 channel.get('stat_day_users'),
-                                                 channel.get('stat_delta_users'),
-                                                 send_reason
-                                                 ),
-                                         'markdown')
+                if ((datetime.now(timezone(Config.TIMEZONE)) - channel.get('write_last_time') >= timedelta(minutes=channel.get('write_ban_minutes')))
+                        and send_reason != '') or send_force:
+
+                    message = ('*Stats:* [{}](https://t.me/{}) ({:%Y/%m/%d %H:%M:%S})\n''Подписчиков: {:d}\n'
+                               'За {}: {:+d}\n'
+                               'За день: {:+d}\n'
+                               'Поток: {:+d} [(?)](http://telegra.ph/Ux-Stats-11-30)\n'
+                               'Триггер: {}\n'
+                               '#uxstat'
+                               .format(channel.get('name'), channel.get('name')[1:], last_check_datetime,
+                                       new_users_fresh,
+                                       get_amazing_date(datetime.now(timezone(Config.TIMEZONE)) - channel.get('write_last_time')),
+                                       new_users,
+                                       channel.get('stat_day_users'),
+                                       channel.get('stat_delta_users'),
+                                       send_reason
+                               ))
+
+                    app.api_send_message(channel.get('admin_to'), 'PREVIEW:\n\n{}'.format(message), 'markdown')
+                    app.api_send_message(channel.get('print_to'), message, 'markdown')
 
                     channel.update({'write_last_time': datetime.now(timezone(Config.TIMEZONE))})
                     channel.update({'stat_delta_users': 0})
@@ -190,7 +199,7 @@ if __name__ == '__main__':
                 channel.update({'stat_last_check_time': datetime.now(timezone(Config.TIMEZONE))})
 
                 # save
-                db_channel = Settings.get(channel_name=channel.get('name'))
+                db_channel = Settings.get(Settings.id == channel.get('id'))
 
                 if db_channel:
                     db_channel.stat_total_users = channel.get('stat_total_users')
@@ -204,6 +213,11 @@ if __name__ == '__main__':
 
                     db_channel.save()
 
-                time.sleep(5)
+                time.sleep(7)
 
-        time.sleep(30)
+        except Exception as e:
+            logging.warning('{}\n{}'.format(e, err))
+            app.api_send_message(Settings.get(Settings.id == 1).admin_to, '{}\n{}'.format(e, err))
+
+        finally:
+            time.sleep(30)
