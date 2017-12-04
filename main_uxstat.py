@@ -19,6 +19,10 @@ def get_amazing_date(timedelta: timedelta):
     hours_vars = ['час', 'часа', 'часов']
     minutes_vars = ['минуту', 'минуты', 'минут']
 
+    # check days (very rare event)
+    if timedelta.days > 0:
+        return 'сутки'
+
     # check hours
     hours = round(timedelta.seconds / 3600)
     output = get_pretty_string_time(hours_vars, hours)
@@ -146,7 +150,7 @@ if __name__ == '__main__':
                     send_reason = '#get {}!'.format(new_users_fresh)
                     send_force = True
 
-                elif channel.get('stat_last_check_time').day != last_check_datetime.day:
+                elif channel.get('trigger_new_day') and channel.get('stat_last_check_time').day != last_check_datetime.day:
                     send_reason = 'новый день'
 
                 elif new_users >= channel.get('trigger_min_sub'):
@@ -177,7 +181,9 @@ if __name__ == '__main__':
                                        send_reason
                                ))
 
-                    app.api_send_message(channel.get('admin_to'), 'PREVIEW:\n\n{}'.format(message), 'markdown')
+                    if channel.get('admin_to') != channel.get('print_to'):
+                        app.api_send_message(channel.get('admin_to'), 'PREVIEW:\n\n{}'.format(message), 'markdown')
+
                     app.api_send_message(channel.get('print_to'), message, 'markdown')
 
                     channel.update({'write_last_time': datetime.now(timezone(Config.TIMEZONE))})
@@ -213,7 +219,7 @@ if __name__ == '__main__':
 
                     db_channel.save()
 
-                time.sleep(7)
+                time.sleep(5)
 
         except Exception as e:
             logging.warning('{}\n{}'.format(e, err))
