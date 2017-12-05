@@ -19,6 +19,10 @@ def get_amazing_date(timedelta: timedelta):
     hours_vars = ['час', 'часа', 'часов']
     minutes_vars = ['минуту', 'минуты', 'минут']
 
+    # check days (very rare event)
+    if timedelta.days > 0:
+        return 'сутки'
+
     # check hours
     hours = round(timedelta.seconds / 3600)
     output = get_pretty_string_time(hours_vars, hours)
@@ -93,6 +97,7 @@ if __name__ == '__main__':
 
             'stat_total_users': channel.stat_total_users,
             'stat_day_users': channel.stat_day_users,
+            'stat_period_users': channel.stat_period_users,
             'stat_delta_users': channel.stat_delta_users,
             'stat_max_users': channel.stat_max_users,
             'stat_last_check_time': datetime.fromtimestamp(channel.stat_last_check_time, tz=timezone(Config.TIMEZONE)),
@@ -125,6 +130,9 @@ if __name__ == '__main__':
                 new_users_fresh = result.get('result')
                 new_users = new_users_fresh - channel.get('stat_total_users')
 
+                # update period
+                channel.update({'stat_period_users': channel.get('stat_period_users') + new_users})
+
                 # update delta
                 channel.update({'stat_delta_users': channel.get('stat_delta_users') + abs(new_users)})
 
@@ -140,13 +148,13 @@ if __name__ == '__main__':
                 # send_force = True
                 # send_reason = 'Test'
 
-                if new_users_fresh != channel.get('stat_max_users') \
+                if new_users_fresh >= channel.get('stat_max_users') \
                         and new_users_fresh != channel.get('stat_total_users') \
                         and new_users_fresh % channel.get('trigger_every_odd') == 0:
                     send_reason = '#get {}!'.format(new_users_fresh)
                     send_force = True
 
-                elif channel.get('stat_last_check_time').day != last_check_datetime.day:
+                elif channel.get('trigger_new_day') and channel.get('stat_last_check_time').day != last_check_datetime.day:
                     send_reason = 'новый день'
 
                 elif new_users >= channel.get('trigger_min_sub'):
@@ -162,7 +170,8 @@ if __name__ == '__main__':
                 if ((datetime.now(timezone(Config.TIMEZONE)) - channel.get('write_last_time') >= timedelta(minutes=channel.get('write_ban_minutes')))
                         and send_reason != '') or send_force:
 
-                    message = ('*Stats:* [{}](https://t.me/{}) ({:%Y/%m/%d %H:%M:%S})\n''Подписчиков: {:d}\n'
+                    message = ('*Stats:* [{}](https://t.me/{}) ({:%Y/%m/%d %H:%M:%S})\n'
+                               'Подписчиков: {:d}\n'
                                'За {}: {:+d}\n'
                                'За день: {:+d}\n'
                                'Поток: {:+d} [(?)](http://telegra.ph/Ux-Stats-11-30)\n'
@@ -170,18 +179,20 @@ if __name__ == '__main__':
                                '#uxstat'
                                .format(channel.get('name'), channel.get('name')[1:], last_check_datetime,
                                        new_users_fresh,
-                                       get_amazing_date(datetime.now(timezone(Config.TIMEZONE)) - channel.get('write_last_time')),
-                                       new_users,
+                                       get_amazing_date(datetime.now(timezone(Config.TIMEZONE)) - channel.get('write_last_time')), channel.get('stat_period_users'),
                                        channel.get('stat_day_users'),
                                        channel.get('stat_delta_users'),
                                        send_reason
                                ))
 
-                    app.api_send_message(channel.get('admin_to'), 'PREVIEW:\n\n{}'.format(message), 'markdown')
+                    if channel.get('admin_to') != channel.get('print_to'):
+                        app.api_send_message(channel.get('admin_to'), 'PREVIEW:\n\n{}'.format(message), 'markdown')
+
                     app.api_send_message(channel.get('print_to'), message, 'markdown')
 
                     channel.update({'write_last_time': datetime.now(timezone(Config.TIMEZONE))})
                     channel.update({'stat_delta_users': 0})
+                    channel.update({'stat_period_users': 0})
 
                 ### post update ###
                 # update total (not move above delta count line!)
@@ -204,6 +215,7 @@ if __name__ == '__main__':
                 if db_channel:
                     db_channel.stat_total_users = channel.get('stat_total_users')
                     db_channel.stat_day_users = channel.get('stat_day_users')
+                    db_channel.stat_period_users = channel.get('stat_period_users')
                     db_channel.stat_max_users = channel.get('stat_max_users')
                     db_channel.stat_delta_users = channel.get('stat_delta_users')
 
@@ -213,7 +225,7 @@ if __name__ == '__main__':
 
                     db_channel.save()
 
-                time.sleep(7)
+                time.sleep(5)
 
         except Exception as e:
             logging.warning('{}\n{}'.format(e, err))

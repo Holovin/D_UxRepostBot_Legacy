@@ -24,7 +24,10 @@ For database config see table structure in `db_models.py` file.
 - `HEADERS` - headers for HTTPS requests
 
 ## Changelog
-### v1.3-r3 - 02.12.2017
+### v1.4 - 05.12.2017
+Rework count methods, update db fields, fixes for new core
+
+### v1.3 [r1-r6] - 02.12.2017
 Fix: allow duplicate rows
 Fix: global error handling
 Update: allow 'get' event ignore chanel write limit
