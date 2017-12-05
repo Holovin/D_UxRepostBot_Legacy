@@ -166,7 +166,8 @@ if __name__ == '__main__':
                 if ((datetime.now(timezone(Config.TIMEZONE)) - channel.get('write_last_time') >= timedelta(minutes=channel.get('write_ban_minutes')))
                         and send_reason != '') or send_force:
 
-                    message = ('*Stats:* [{}](https://t.me/{}) ({:%Y/%m/%d %H:%M:%S})\n''Подписчиков: {:d}\n'
+                    message = ('*Stats:* [{}](https://t.me/{}) ({:%Y/%m/%d %H:%M:%S})\n'
+                               'Подписчиков: {:d}\n'
                                'За {}: {:+d}\n'
                                'За день: {:+d}\n'
                                'Поток: {:+d} [(?)](http://telegra.ph/Ux-Stats-11-30)\n'
@@ -174,8 +175,7 @@ if __name__ == '__main__':
                                '#uxstat'
                                .format(channel.get('name'), channel.get('name')[1:], last_check_datetime,
                                        new_users_fresh,
-                                       get_amazing_date(datetime.now(timezone(Config.TIMEZONE)) - channel.get('write_last_time')),
-                                       new_users,
+                                       get_amazing_date(datetime.now(timezone(Config.TIMEZONE)) - channel.get('write_last_time')), new_users,
                                        channel.get('stat_day_users'),
                                        channel.get('stat_delta_users'),
                                        send_reason
@@ -189,10 +189,10 @@ if __name__ == '__main__':
                     channel.update({'write_last_time': datetime.now(timezone(Config.TIMEZONE))})
                     channel.update({'stat_delta_users': 0})
 
-                ### post update ###
-                # update total (not move above delta count line!)
-                channel.update({'stat_total_users': new_users_fresh})
+                    # update total (not move above delta count line!)
+                    channel.update({'stat_total_users': new_users_fresh})
 
+                ### post update ###
                 # update max
                 if new_users_fresh > channel.get('stat_max_users'):
                     channel.update({'stat_max_users': new_users_fresh})
