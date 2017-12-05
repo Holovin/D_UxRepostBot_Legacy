@@ -41,6 +41,9 @@ class Settings(BaseModel):
     # total users
     stat_total_users = IntegerField(null=False, default=0)
 
+    # users from previous write
+    stat_period_users = IntegerField(null=False, default=0)
+
     # day users
     stat_day_users = IntegerField(null=False, default=0)
 

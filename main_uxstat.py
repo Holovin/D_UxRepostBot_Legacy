@@ -97,6 +97,7 @@ if __name__ == '__main__':
 
             'stat_total_users': channel.stat_total_users,
             'stat_day_users': channel.stat_day_users,
+            'stat_period_users': channel.stat_period_users,
             'stat_delta_users': channel.stat_delta_users,
             'stat_max_users': channel.stat_max_users,
             'stat_last_check_time': datetime.fromtimestamp(channel.stat_last_check_time, tz=timezone(Config.TIMEZONE)),
@@ -128,6 +129,9 @@ if __name__ == '__main__':
                 # new_users = total_users_fresh - total_users_current
                 new_users_fresh = result.get('result')
                 new_users = new_users_fresh - channel.get('stat_total_users')
+
+                # update period
+                channel.update({'stat_period_users': channel.get('stat_period_users') + new_users})
 
                 # update delta
                 channel.update({'stat_delta_users': channel.get('stat_delta_users') + abs(new_users)})
@@ -175,7 +179,7 @@ if __name__ == '__main__':
                                '#uxstat'
                                .format(channel.get('name'), channel.get('name')[1:], last_check_datetime,
                                        new_users_fresh,
-                                       get_amazing_date(datetime.now(timezone(Config.TIMEZONE)) - channel.get('write_last_time')), new_users,
+                                       get_amazing_date(datetime.now(timezone(Config.TIMEZONE)) - channel.get('write_last_time')), channel.get('stat_period_users'),
                                        channel.get('stat_day_users'),
                                        channel.get('stat_delta_users'),
                                        send_reason
@@ -188,11 +192,12 @@ if __name__ == '__main__':
 
                     channel.update({'write_last_time': datetime.now(timezone(Config.TIMEZONE))})
                     channel.update({'stat_delta_users': 0})
-
-                    # update total (not move above delta count line!)
-                    channel.update({'stat_total_users': new_users_fresh})
+                    channel.update({'stat_period_users': 0})
 
                 ### post update ###
+                # update total (not move above delta count line!)
+                channel.update({'stat_total_users': new_users_fresh})
+
                 # update max
                 if new_users_fresh > channel.get('stat_max_users'):
                     channel.update({'stat_max_users': new_users_fresh})
@@ -210,6 +215,7 @@ if __name__ == '__main__':
                 if db_channel:
                     db_channel.stat_total_users = channel.get('stat_total_users')
                     db_channel.stat_day_users = channel.get('stat_day_users')
+                    db_channel.stat_period_users = channel.get('stat_period_users')
                     db_channel.stat_max_users = channel.get('stat_max_users')
                     db_channel.stat_delta_users = channel.get('stat_delta_users')
 
