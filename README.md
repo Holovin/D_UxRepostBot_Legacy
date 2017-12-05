@@ -27,6 +27,11 @@ For database config see table structure in `db_models.py` file.
 ### v1.4 - 05.12.2017
 Rework count methods, update db fields, fixes for new core
 
+### v1.3 [r1-r6] - 02.12.2017
+Fix: allow duplicate rows
+Fix: global error handling
+Update: allow 'get' event ignore chanel write limit
+
 ### v1.3 - 30.11.2017
 Remove repost module, because telegram api now restrict 'shadow' reposts.
 Fully rework stats module: multichannel support, save state to sqlite3 database, have many improvements. 
