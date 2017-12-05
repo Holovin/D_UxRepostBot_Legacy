@@ -157,10 +157,10 @@ if __name__ == '__main__':
                 elif channel.get('trigger_new_day') and channel.get('stat_last_check_time').day != last_check_datetime.day:
                     send_reason = 'новый день'
 
-                elif new_users >= channel.get('trigger_min_sub'):
+                elif channel.get('stat_period_users') >= channel.get('trigger_min_sub'):
                     send_reason = 'подписки'
 
-                elif new_users <= channel.get('trigger_min_ubsub'):
+                elif channel.get('stat_period_users') <= channel.get('trigger_min_ubsub'):
                     send_reason = 'отписки'
 
                 elif channel.get('stat_delta_users') >= channel.get('trigger_min_flow'):
