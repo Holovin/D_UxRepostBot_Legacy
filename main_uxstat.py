@@ -144,7 +144,7 @@ if __name__ == '__main__':
                 # send_force = True
                 # send_reason = 'Test'
 
-                if new_users_fresh != channel.get('stat_max_users') \
+                if new_users_fresh >= channel.get('stat_max_users') \
                         and new_users_fresh != channel.get('stat_total_users') \
                         and new_users_fresh % channel.get('trigger_every_odd') == 0:
                     send_reason = '#get {}!'.format(new_users_fresh)
