@@ -21,17 +21,17 @@ def get_amazing_date(timedelta: timedelta):
 
     # check days (very rare event)
     if timedelta.days > 0:
-        return 'сутки'
+        return 'сутки или более'
 
     # check hours
-    hours = round(timedelta.seconds / 3600)
+    hours = round(timedelta.seconds / 3600) % 20
     output = get_pretty_string_time(hours_vars, hours)
 
     if output:
         return output
 
     # check min
-    minutes = round(timedelta.seconds / 60)
+    minutes = round(timedelta.seconds / 60) % 20
     output = get_pretty_string_time(minutes_vars, minutes)
 
     if output:
