@@ -19,10 +19,6 @@ def get_amazing_date(timedelta: timedelta):
     hours_vars = ['час', 'часа', 'часов']
     minutes_vars = ['минуту', 'минуты', 'минут']
 
-    # check days (very rare event)
-    if timedelta.days > 0:
-        return 'сутки или более'
-
     # check hours
     hours = round(timedelta.seconds / 3600) % 20
     output = get_pretty_string_time(hours_vars, hours)
@@ -203,7 +199,7 @@ if __name__ == '__main__':
                     channel.update({'stat_max_users': new_users_fresh})
 
                 # reset day stat if needed
-                if channel.get('stat_last_check_time').day != last_check_datetime.day and send_reason != '':
+                if channel.get('stat_last_check_time').day != last_check_datetime.day:
                     channel.update({'stat_day_users': 0})
 
                 # update time
