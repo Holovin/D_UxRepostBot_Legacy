@@ -3,16 +3,15 @@
 import logging
 import time
 
-from logging.handlers import RotatingFileHandler
-
 from pytz import timezone
 from datetime import datetime, timedelta
+from dateutil.parser import parse
 
 from config import Config
 from api import API
 from helpers.db_connect import Database
-from helpers.db_manager import Serve
 from helpers.db_models import Settings
+from helpers.logger import logger_setup
 
 
 def get_amazing_date(timedelta: timedelta):
@@ -54,25 +53,21 @@ def get_pretty_string_time(strings, timediff):
     return ''
 
 
+def str_to_time(data):
+    if type(data) is str:
+        return parse(data)
+
+    return data
+
+
 if __name__ == '__main__':
-    # Serve.create_tables(Database.get_db())
-    # exit(99)
-
     # init
-    root = logging.getLogger()
-    root.addHandler(logging.NullHandler())
-
-    fmt = logging.Formatter(Config.LOG_FORMAT, datefmt=':%Y/%m/%d %H:%M:%S')
-    logger = logging.getLogger('ux_repost_bot_legacy')
-    handler = RotatingFileHandler(filename='log.txt', maxBytes=10000000, backupCount=5)
-    handler.setFormatter(Config.LOG_FORMAT)
-    handler.setLevel(Config.LOG_LEVEL)
-    handler.setFormatter(fmt)
-    logger.propagate = True
-    logger.setLevel(Config.LOG_LEVEL)
-    logger.addHandler(handler)
+    LOGGER_NAME = 'ux_repost_bot_legacy'
+    logger = logging.getLogger(LOGGER_NAME)
+    logger_setup(Config.LOG_FULL_PATH, [LOGGER_NAME], True)
 
     app = API(Config.BOT_ID, Config.SECRET_TOKEN, logger)
+    tz = timezone(Config.TIMEZONE)
 
     # db
     database = Database.get_db()
@@ -80,61 +75,46 @@ if __name__ == '__main__':
 
     channels = []
     for channel in Settings.select():
-        channels.append({
-            'id': channel.id,
-            'name': channel.channel_name,
-            'print_to': channel.print_to,
-            'admin_to': channel.admin_to,
-            'trigger_min_sub': channel.trigger_min_sub,
-            'trigger_min_ubsub': channel.trigger_min_unsub,
-            'trigger_min_flow': channel.trigger_min_flow,
-            'trigger_every_odd': channel.trigger_every_odd,
-            'trigger_new_day': channel.trigger_new_day,
+        channel.stat_last_check_time = str_to_time(channel.stat_last_check_time)
+        channel.write_last_time = str_to_time(channel.write_last_time)
 
-            'stat_total_users': channel.stat_total_users,
-            'stat_day_users': channel.stat_day_users,
-            'stat_period_users': channel.stat_period_users,
-            'stat_delta_users': channel.stat_delta_users,
-            'stat_max_users': channel.stat_max_users,
-            'stat_last_check_time': datetime.fromtimestamp(channel.stat_last_check_time, tz=timezone(Config.TIMEZONE)),
+        channels.append(channel)
 
-            'write_ban_minutes': channel.write_ban_minutes,
-            'write_last_time': datetime.fromtimestamp(channel.write_last_time, tz=timezone(Config.TIMEZONE)),
-        })
-
-    last_check_datetime = datetime.now(timezone(Config.TIMEZONE))
+    last_check_datetime = datetime.now(tz)
 
     while True:
         try:
             for channel in channels:
+                logging.info('Check channel: {} (date check: {}, date write: {})'.format(channel.channel_name, channel.stat_last_check_time, channel.write_last_time))
+
                 try:
-                    result = app.api_get_chat_members_count(channel.get('name'))
-                    last_check_datetime = datetime.now(timezone(Config.TIMEZONE))
+                    result = app.api_get_chat_members_count(channel.channel_name)
+                    last_check_datetime = datetime.now(tz)
 
                     if not result:
-                        err = 'Cant count users delta for {} (err: empty response)'.format(channel.get('name'))
+                        err = 'Cant count users delta for {} (err: empty response)'.format(channel.channel_name)
                         logging.warning(err)
-                        app.api_send_message(channel.get('admin_to'), err)
+                        app.api_send_message(channel.admin_to, err)
                         raise Exception('Empty result')
 
                 except Exception as e:
                     logging.warning('{}\n{}'.format(e, err))
-                    app.api_send_message(channel.get('admin_to'), '{}\n{}'.format(e, err))
+                    app.api_send_message(channel.admin_to, '{}\n{}'.format(e, err))
                     continue
 
                 # new_users = total_users_fresh - total_users_current
                 new_users_fresh = result.get('result')
-                new_users = new_users_fresh - channel.get('stat_total_users')
+                new_users = new_users_fresh - channel.stat_total_users
 
                 # update period
-                channel.update({'stat_period_users': channel.get('stat_period_users') + new_users})
+                channel.stat_period_users += new_users
 
                 # update delta
-                channel.update({'stat_delta_users': channel.get('stat_delta_users') + abs(new_users)})
+                channel.stat_delta_users += abs(new_users)
 
                 # update day counter
-                if channel.get('stat_last_check_time').day == last_check_datetime.day:
-                    channel.update({'stat_day_users': channel.get('stat_day_users') + new_users})
+                if channel.stat_last_check_time.day == last_check_datetime.day:
+                    channel.stat_day_users += new_users
 
                 ### send checks ###
                 send_reason = ''
@@ -144,28 +124,30 @@ if __name__ == '__main__':
                 # send_force = True
                 # send_reason = 'Test'
 
-                if new_users_fresh >= channel.get('stat_max_users') \
-                        and new_users_fresh != channel.get('stat_total_users') \
-                        and new_users_fresh % channel.get('trigger_every_odd') == 0:
+                if new_users_fresh >= channel.stat_max_users and new_users_fresh != channel.stat_total_users \
+                        and new_users_fresh // channel.trigger_every_odd > channel.stat_max_users // channel.trigger_every_odd:
                     send_reason = '#get {}!'.format(new_users_fresh)
                     send_force = True
 
-                elif channel.get('trigger_new_day') and channel.get('stat_last_check_time').day != last_check_datetime.day:
+                elif channel.trigger_new_day and channel.stat_last_check_time.day != last_check_datetime.day:
                     send_reason = 'новый день'
 
-                elif channel.get('stat_period_users') >= channel.get('trigger_min_sub'):
+                elif channel.stat_period_users >= channel.trigger_min_sub:
                     send_reason = 'подписки'
 
-                elif channel.get('stat_period_users') <= channel.get('trigger_min_ubsub'):
+                elif channel.stat_period_users <= channel.trigger_min_unsub:
                     send_reason = 'отписки'
 
-                elif channel.get('stat_delta_users') >= channel.get('trigger_min_flow'):
+                elif channel.stat_delta_users >= channel.trigger_min_flow:
                     send_reason = 'поток'
 
-                # send & reset stash
-                if ((datetime.now(timezone(Config.TIMEZONE)) - channel.get('write_last_time') >= timedelta(minutes=channel.get('write_ban_minutes')))
-                        and send_reason != '') or send_force:
+                time_diff = datetime.now(tz) - channel.write_last_time
 
+                logging.info('New users: {} (diff: {})\n'
+                             'Trigger: {} (force? {})\n'
+                             'Send diff: {}\n'.format(new_users_fresh, new_users, send_reason, send_force, time_diff))
+                # send & reset stash
+                if (time_diff >= timedelta(minutes=channel.write_ban_minutes) and send_reason != '') or send_force:
                     message = ('*Stats:* [{}](https://t.me/{}) ({:%Y/%m/%d %H:%M:%S})\n'
                                'Подписчиков: {:d}\n'
                                'За {}: {:+d}\n'
@@ -173,59 +155,46 @@ if __name__ == '__main__':
                                'Поток: {:+d} [(?)](http://telegra.ph/Ux-Stats-11-30)\n'
                                'Триггер: {}\n'
                                '#uxstat'
-                               .format(channel.get('name'), channel.get('name')[1:], last_check_datetime,
+                               .format(channel.channel_name, channel.channel_name[1:], last_check_datetime,
                                        new_users_fresh,
-                                       get_amazing_date(datetime.now(timezone(Config.TIMEZONE)) - channel.get('write_last_time')), channel.get('stat_period_users'),
-                                       channel.get('stat_day_users'),
-                                       channel.get('stat_delta_users'),
+                                       get_amazing_date(datetime.now(tz) - channel.write_last_time), channel.stat_period_users,
+                                       channel.stat_day_users,
+                                       channel.stat_delta_users,
                                        send_reason
-                               ))
+                                       )
+                               )
 
-                    if channel.get('admin_to') != channel.get('print_to'):
-                        app.api_send_message(channel.get('admin_to'), 'PREVIEW:\n\n{}'.format(message), 'markdown')
+                    if channel.admin_to != channel.print_to:
+                        app.api_send_message(channel.admin_to, 'PREVIEW:\n\n{}'.format(message), 'markdown')
 
-                    app.api_send_message(channel.get('print_to'), message, 'markdown')
+                    app.api_send_message(channel.print_to, message, 'markdown')
 
-                    channel.update({'write_last_time': datetime.now(timezone(Config.TIMEZONE))})
-                    channel.update({'stat_delta_users': 0})
-                    channel.update({'stat_period_users': 0})
+                    channel.write_last_time = datetime.now(tz)
+                    channel.stat_delta_users = 0
+                    channel.stat_period_users = 0
 
                 ### post update ###
                 # update total (not move above delta count line!)
-                channel.update({'stat_total_users': new_users_fresh})
+                channel.stat_total_users = new_users_fresh
 
                 # update max
-                if new_users_fresh > channel.get('stat_max_users'):
-                    channel.update({'stat_max_users': new_users_fresh})
+                if new_users_fresh > channel.stat_max_users:
+                    channel.stat_max_users = new_users_fresh
 
                 # reset day stat if needed
-                if channel.get('stat_last_check_time').day != last_check_datetime.day:
-                    channel.update({'stat_day_users': 0})
+                if channel.stat_last_check_time.day != last_check_datetime.day:
+                    channel.stat_day_users = 0
 
                 # update time
-                channel.update({'stat_last_check_time': datetime.now(timezone(Config.TIMEZONE))})
+                channel.stat_last_check_time = datetime.now(tz)
 
                 # save
-                db_channel = Settings.get(Settings.id == channel.get('id'))
-
-                if db_channel:
-                    db_channel.stat_total_users = channel.get('stat_total_users')
-                    db_channel.stat_day_users = channel.get('stat_day_users')
-                    db_channel.stat_period_users = channel.get('stat_period_users')
-                    db_channel.stat_max_users = channel.get('stat_max_users')
-                    db_channel.stat_delta_users = channel.get('stat_delta_users')
-
-                    # any best way to drop THIS FUCKING USELESS MICROSECONDS?
-                    db_channel.stat_last_check_time = str(int(channel.get('stat_last_check_time').timestamp()))
-                    db_channel.write_last_time = str(int(channel.get('write_last_time').timestamp()))
-
-                    db_channel.save()
-
-                time.sleep(5)
+                channel.save()
+                time.sleep(2)
 
         except Exception as e:
             logging.warning('{}\n{}'.format(e, err))
             app.api_send_message(Settings.get(Settings.id == 1).admin_to, '{}\n{}'.format(e, err))
 
         finally:
-            time.sleep(30)
+            time.sleep(10)

@@ -54,11 +54,10 @@ class Settings(BaseModel):
     stat_max_users = IntegerField(null=False, default=0)
 
     # last check time
-    # NOTE: i didn't use datetime or timestamp fields, because sqlite can't store timezone and i have so much pain with trying convert it
-    stat_last_check_time = IntegerField(null=False, default=1500000000)
+    stat_last_check_time = DateTimeField(null=False, default=datetime.now(timezone(Config.TIMEZONE)))
 
     # no more 1 message more than ban_minutes
     write_ban_minutes = IntegerField(null=False, default=1)
 
     # last write time
-    write_last_time = IntegerField(null=False, default=1500000000)
+    write_last_time = DateTimeField(null=False, default=datetime.now(timezone(Config.TIMEZONE)))
