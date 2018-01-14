@@ -24,6 +24,15 @@ For database config see table structure in `db_models.py` file.
 - `HEADERS` - headers for HTTPS requests
 
 ## Changelog
+### v1.4.2 - 14.01.2018
+Fix: rework 'get' event trigger
+Fix: try disable telegram requests cache
+Some fixes from other bots (new logger and db manager)
+
+### v1.4.1 - 22.12.2017
+Fix: count day stat when daily output disabled
+Some fixes from other bots
+
 ### v1.4 - 05.12.2017
 Rework count methods, update db fields, fixes for new core
 
